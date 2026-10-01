@@ -17,6 +17,13 @@ x = "x"
 y = "y"
 z = "z"
 
+type Ctx = [( ID , Type ) ]
+
+data Type = Nat | Boolean
+ deriving (Eq, Show)
+
+---------------------------------------------------------------
+
 instance Show EAB where
     show (Num n) = show n
     show (Var x) = x
@@ -64,10 +71,10 @@ evalEnv env (IsZero e) =
 evalEnv env (Lt e1 e2) =
     case (evalEnv env e1, evalEnv env e2) of
         (Left n1, Left n2) -> Right (n1 < n2)
-evalEnv env (Gt e1 e2) =	
+evalEnv env (Gt e1 e2) =
     case (evalEnv env e1, evalEnv env e2) of
         (Left n1, Left n2) -> Right (n1 > n2)
-evalEnv env (Lt e1 e2) =
+evalEnv env (Eq e1 e2) =
     case (evalEnv env e1, evalEnv env e2) of
         (Left n1, Left n2) -> Right (n1 == n2)
 evalEnv env (Let x e1 e2) =
@@ -92,3 +99,62 @@ sust x e1 (Eq e2 e3) = Eq (sust x e1 e2) (sust x e1 e3)
 sust x e1 (Let y e2 e3) =
     if x == y then Let y (sust x e1 e2) e3
     else Let y (sust x e1 e2) (sust x e1 e3)
+
+
+
+
+------------------PARTE 3 - SEMÁNTICA ESTÁTICA -----
+
+--Ejercicio 1
+typeEAB :: Ctx -> EAB -> Type
+typeEAB _ (Num n) = Nat
+typeEAB _ (Bool b) = Boolean
+typeEAB ctx (Var x) = buscaVariable ctx x
+typeEAB ctx (Suma a1 a2)
+  | typeEAB ctx a1 /= Nat = error ("Expected Nat: " ++ show a1)
+  | typeEAB ctx a2 /= Nat = error ("Expected Nat: " ++ show a2)
+  | otherwise = Nat
+typeEAB ctx (Prod a1 a2)
+  | typeEAB ctx a1 /= Nat = error ("Expected Nat: " ++ show a1)
+  | typeEAB ctx a2 /= Nat = error ("Expected Nat: " ++ show a2)
+  | otherwise = Nat    
+typeEAB ctx (Suc s) = if typeEAB ctx s == Nat then Nat else error ("Expected Nat: " ++ show s)
+typeEAB ctx (Pred p) = if typeEAB ctx p == Nat then Nat else error ("Expected Nat: " ++ show p)
+typeEAB ctx (Not n) = if typeEAB ctx n == Boolean then Boolean else error ("Expected Boolean: " ++ show n)
+typeEAB ctx (If e1 e2 e3)
+  | typeEAB ctx e1 /= Boolean = error ("Expected Boolean: " ++ show e1)
+  | tipo2 /= tipo3 = error ("Types in e2 and e3 are different. " ++ "e2 is: " ++ show tipo2 ++ ", e3 is: " ++ show tipo3)
+  | otherwise = tipo2
+  where
+    tipo2 = typeEAB ctx e2
+    tipo3 = typeEAB ctx e3
+typeEAB ctx (IsZero n) = if typeEAB ctx n == Nat then Boolean else error ("Expected Nat: " ++ show n)
+typeEAB ctx (Lt a1 a2)
+  | typeEAB ctx a1 /= Nat = error ("Expected Nat: " ++ show a1)
+  | typeEAB ctx a2 /= Nat = error ("Expected Nat: " ++ show a2)
+  | otherwise = Boolean 
+typeEAB ctx (Gt a1 a2)
+  | typeEAB ctx a1 /= Nat = error ("Expected Nat: " ++ show a1)
+  | typeEAB ctx a2 /= Nat = error ("Expected Nat: " ++ show a2)
+  | otherwise = Boolean
+typeEAB ctx (Eq a1 a2)
+  | typeEAB ctx a1 /= Nat = error ("Expected Nat: " ++ show a1)
+  | typeEAB ctx a2 /= Nat = error ("Expected Nat: " ++ show a2)
+  | otherwise = Boolean  
+typeEAB ctx (Let x valor e) = typeEAB ((x,typeEAB ctx valor):ctx) e 
+
+
+
+--Función auxiliar Ejercicio 1
+buscaVariable :: Ctx -> ID -> Type
+buscaVariable [] _ = error "Variable no definida"
+buscaVariable ((id,t):ctx) x = if id == x then t else buscaVariable ctx x
+
+
+--Ejercicio 2
+evalEst :: EAB -> Either Int Bool
+evalEst e =
+  case typeEAB [] e of
+  Boolean -> evalEnv [] e
+  Nat -> evalEnv [] e
+
