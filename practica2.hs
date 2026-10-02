@@ -1,3 +1,6 @@
+import Data.Tuple.Experimental (CTuple0, CTuple3)
+import Foreign.C (e2BIG)
+
 type ID = String
 
 data EAB
