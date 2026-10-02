@@ -1,6 +1,3 @@
-import Data.Tuple.Experimental (CTuple0, CTuple3)
-import Foreign.C (e2BIG)
-
 type ID = String
 
 data EAB
@@ -32,7 +29,7 @@ type Ctx = [(ID, Type)]
 data Type = Nat | Boolean
   deriving (Eq, Show)
 
----------------------------------------------------------------
+---------------------------- PARTE 1 - INTRODUCCIÓN -----------------------------------
 
 instance Show EAB where
   show (Num n) = show n
@@ -107,9 +104,29 @@ sust x e1 (Lt e2 e3) = Lt (sust x e1 e2) (sust x e1 e3)
 sust x e1 (Gt e2 e3) = Gt (sust x e1 e2) (sust x e1 e3)
 sust x e1 (Eq e2 e3) = Eq (sust x e1 e2) (sust x e1 e3)
 sust x e1 (Let y e2 e3) =
-  if x == y
-    then Let y (sust x e1 e2) e3
+  if x == y || fv x e3
+    then error("Error: Captura de variable libre")
     else Let y (sust x e1 e2) (sust x e1 e3)
+
+--Función auxiliar para detectar variables libres
+fv :: ID -> EAB -> Bool
+fv x (Num n) = False
+fv x (Bool b) = False
+fv x (Var y) = if x == y then True else False
+fv x (Suma e1 e2) = fv x e1 || fv x e2
+fv x (Prod e1 e2) = fv x e1 || fv x e2
+fv x (Suc e) = fv x e
+fv x (Pred e) = fv x e
+fv x (Not e) = fv x e
+fv x (If e1 e2 e3) = fv x e1 || fv x e2 || fv x e3
+fv x (IsZero e) = fv x e
+fv x (Lt e1 e2) = fv x e1 || fv x e2
+fv x (Gt e1 e2) = fv x e1 || fv x e2
+fv x (Eq e1 e2) = fv x e1 || fv x e2
+fv x (Let y e1 e2) =
+  if x == y 
+    then fv x e1
+    else fv x e1 || fv x e2
 
 ------------------PARTE 2 - SEMÁNTICA DINÁMICA -----
 evalStep :: EAB -> EAB
